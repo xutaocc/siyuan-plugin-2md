@@ -31,6 +31,7 @@ import KernelApi from "../api/kernel-api"
 import { HtmlUtil, StrUtil } from "zhi-common"
 import RenderOptions from "../models/renderOptions"
 import ExportMode from "../models/ExportMode"
+import { sanitizeFileName } from "../utils/exportPath"
 
 /**
  * Markdown渲染器
@@ -126,7 +127,7 @@ class BaseMarkdownRenderer {
         if (StrUtil.isEmptyString(dir_name)) {
           return
         }
-        dir_arr.push(dir_name)
+        dir_arr.push(sanitizeFileName(dir_name))
       })
       const toDir = path.join(...dir_arr)
       if (file.subFileCount > 0) {
@@ -141,13 +142,13 @@ class BaseMarkdownRenderer {
       }
       // 确保有目录
       if (!fs.existsSync(save_dir)) {
-        fs.mkdirSync(save_dir)
+        fs.mkdirSync(save_dir, { recursive: true })
       }
       let save_file_name = path.basename(save_file)
       if (this.opts.fixTitle) {
         save_file_name = HtmlUtil.removeTitleNumber(save_file_name)
       }
-      save_file = path.join(save_dir, save_file_name)
+      save_file = path.join(save_dir, sanitizeFileName(save_file_name))
       this.logger.debug("生成文档 => ", save_file)
       // 渲染单个 MD（核心方法）
       const md = await this.renderSingleDoc(pageId)
@@ -269,7 +270,7 @@ class BaseMarkdownRenderer {
     return { ret: ret, nameMap: nameMap }
   }
 
-  private async getDoc(docId: string) {
+  protected async getDoc(docId: string) {
     return await this.kernelApi.getDoc(docId)
   }
 
@@ -279,14 +280,14 @@ class BaseMarkdownRenderer {
    * @param notebook - 笔记本
    * @param path - 路径
    */
-  private async listDocsByPath(notebook: string, path?: string) {
+  protected async listDocsByPath(notebook: string, path?: string) {
     const data = { notebook: notebook, path: path ?? "", sort: 4 }
     const url = "/api/filetree/listDocsByPath"
     //文档hpath与Markdown 内容
     return await this.kernelApi.siyuanRequest(url, data)
   }
 
-  private async processAssets(md: any) {
+  protected async processAssets(md: string) {
     // 资源链接一般是 [](assets/xxx.文件后缀)
     // 例如：
     // [test.json](assets/test-20250303161112-r42wpuu.json)
@@ -348,7 +349,7 @@ class BaseMarkdownRenderer {
             this.logger.error(`资源处理失败：${assetPath}`, err)
           }
         } else {
-          if (!assetPath.startsWith("http://")) {
+          if (!/^https?:\/\//i.test(assetPath)) {
             this.logger.warn("assetPath is not a url", assetPath)
           } else {
             // 远程下载
@@ -435,32 +436,21 @@ class BaseMarkdownRenderer {
   private async handleRemoteAsset(url: string, targetPath: string): Promise<string> {
     const fs = SiyuanDevice.requireLib("fs").promises
     const path = SiyuanDevice.requireLib("path")
-
-    // 创建写入流
-    const writer = fs.createWriteStream(targetPath)
-
     try {
       const response = await fetch(url)
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
       }
 
-      // 获取可读流
-      const reader = response.body.getReader()
-      // eslint-disable-next-line no-constant-condition
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        writer.write(value)
-      }
+      const stream = SiyuanDevice.requireLib("stream")
+      const { pipeline } = SiyuanDevice.requireLib("stream/promises")
+      await pipeline(stream.Readable.fromWeb(response.body), SiyuanDevice.requireLib("fs").createWriteStream(targetPath))
 
       // 返回相对路径
       return path.relative(this.opts.outputFolder, targetPath)
     } catch (err) {
       this.logger.error(`远程资源下载失败：${url}`, err)
       throw err
-    } finally {
-      writer.close()
     }
   }
 
@@ -499,7 +489,7 @@ class BaseMarkdownRenderer {
     }
   }
 
-  private async processLinks(md: any) {
+  protected async processLinks(md: string) {
     // 链接处理
     const outerLinkRegex = /\[(.+?)]\(siyuan:\/\/blocks\/(\d+-\w+)\)/g
     const matches = Array.from(md.matchAll(outerLinkRegex))

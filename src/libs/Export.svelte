@@ -34,6 +34,7 @@
   // 平台选项数据
   const platforms = [
     { id: PlatformType.DEFAULT, name: "通用MD", icon: "📁", disabled: false },
+    { id: PlatformType.OBSIDIAN, name: "Obsidian Vault", icon: "🔮", disabled: false },
     { id: PlatformType.MKDOCS, name: "MkDocs", icon: "📘", disabled: false },
     { id: PlatformType.HEXO, name: "Hexo", icon: "🌍", disabled: true },
     { id: PlatformType.HUGO, name: "Hugo", icon: "⚡", disabled: true },
@@ -71,6 +72,7 @@
     })
 
     if (StrUtil.isEmptyString(currentConfig.outputFolder)) {
+      unsubscribe()
       showMessage(pluginInstance.i18n.export.outputFolderEmpty, 7000, "error")
       return
     }

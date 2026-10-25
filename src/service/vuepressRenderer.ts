@@ -28,6 +28,7 @@ import { SiyuanDevice } from "zhi-device"
 import { isDev } from "../Constants"
 import RenderOptions from "../models/renderOptions"
 import { HtmlUtil, StrUtil } from "zhi-common"
+import { sanitizeFileName } from "../utils/exportPath"
 
 /**
  * Markdown渲染器
@@ -77,7 +78,7 @@ class VuepressRenderer extends BaseMarkdownRenderer {
       let save_file: string
       const dir_arr = []
       paths.forEach((item: string) => {
-        dir_arr.push(nameMap[item])
+        if (!StrUtil.isEmptyString(nameMap[item])) dir_arr.push(sanitizeFileName(nameMap[item]))
       })
       const toDir = path.join(...dir_arr)
       if (file.subFileCount > 0) {
@@ -100,11 +101,11 @@ class VuepressRenderer extends BaseMarkdownRenderer {
       }
       // 确保有目录
       if (!fs.existsSync(save_dir)) {
-        fs.mkdirSync(save_dir)
+        fs.mkdirSync(save_dir, { recursive: true })
       }
       // 确保有目录
       if (!fs.existsSync(first_dir)) {
-        fs.mkdirSync(first_dir)
+        fs.mkdirSync(first_dir, { recursive: true })
       }
 
       // md正文
@@ -141,7 +142,7 @@ author:
       if (this.opts.fixTitle) {
         save_file_name = HtmlUtil.removeTitleNumber(save_file_name)
       }
-      save_file = path.join(save_dir, save_file_name)
+      save_file = path.join(save_dir, sanitizeFileName(save_file_name))
       this.logger.debug("生成文档 => ", save_file)
       await fsPromise.writeFile(save_file, md, { encoding: "utf8" })
 
@@ -169,7 +170,7 @@ author:
         if (this.opts.fixTitle) {
           first_save_file_name = HtmlUtil.removeTitleNumber(first_save_file_name)
         }
-        const first_save_file = path.join(first_save_dir, first_save_file_name)
+        const first_save_file = path.join(first_save_dir, sanitizeFileName(first_save_file_name))
         this.logger.debug("生成文档 => ", first_save_file)
         await fsPromise.writeFile(first_save_file, dirMd, { encoding: "utf8" })
       }

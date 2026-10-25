@@ -1,6 +1,6 @@
 {
   "name": "siyuan-plugin-2md",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "type": "module",
   "description": "Batch convert the documents of Siyuan Notes into Markdown files, and support the conversion properties of FrontFormatter corresponding to Hexo, Hugo, Vitepress, Obsidian and other platforms",
   "repository": "terwer/siyuan-plugin-2md",
@@ -14,6 +14,7 @@
     "build": "vite build",
     "start": "vite preview",
     "test": "vitest --watch",
+    "test:export": "node scripts/test-export.cjs",
     "syncVersion": "python scripts/version.py",
     "parseChangelog": "python scripts/parse_changelog.py",
     "prepareRelease": "pnpm syncVersion && pnpm parseChangelog",

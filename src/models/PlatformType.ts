@@ -4,6 +4,7 @@ enum PlatformType {
   MKDOCS = "mkdocs",
   VITEPRESS = "vitepress",
   VUEPRESS = "vuepress",
+  OBSIDIAN = "obsidian",
   DEFAULT = "default",
 }
 

@@ -3,6 +3,7 @@ import PlatformType from "../models/PlatformType"
 import MkdocsMaterialRenderer from "./mkdocsMaterialRenderer"
 import DefaultRenderer from "./defaultRenderer"
 import VuepressRenderer from "./vuepressRenderer"
+import ObsidianRenderer from "./obsidianRenderer"
 
 /**
  * 导出服务
@@ -17,10 +18,15 @@ class ExportService {
   }
 
   public async doExport(exportConfig: any) {
-    const type = exportConfig.type
+    // 界面和预设使用 platform；保留 type 作为旧配置的回退字段。
+    const type = exportConfig.platform ?? exportConfig.type
     let count = 0
     let markdownRender = null
     switch (type) {
+      case PlatformType.OBSIDIAN: {
+        markdownRender = new ObsidianRenderer(this.pluginInstance)
+        break
+      }
       case PlatformType.MKDOCS: {
         markdownRender = new MkdocsMaterialRenderer(this.pluginInstance)
         break
